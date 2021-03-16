@@ -1,7 +1,7 @@
 "use strict";
 
-const fs = require("fs");
 const DbService	= require("moleculer-db");
+let User = require("../models/users");
 
 /**
  * @typedef {import('moleculer').Context} Context Moleculer's Context
@@ -57,6 +57,7 @@ module.exports = function(collection) {
 	const MongoAdapter = require("moleculer-db-adapter-mongo");
 
 	schema.adapter = new MongoAdapter(process.env.MONGO_URI);
+	schema.model = User;
 	schema.collection = collection;
 
 	return schema;

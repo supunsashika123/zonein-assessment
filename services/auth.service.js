@@ -1,20 +1,28 @@
 "use strict";
-const DbMixin = require("../mixins/db.mixin");
-const authMixin = require("../mixins/authorize.mixin");
-const bcrypt = require("bcrypt");
 const { MoleculerClientError } = require("moleculer").Errors;
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 let customId = require("custom-id");
+const authMixin = require("../mixins/authorize.mixin");
+const DbMixin = require("../mixins/db.mixin");
 
 
 module.exports = {
 	name: "auth",
+
 	version: 1,
+
 	mixins:[DbMixin("users"), authMixin],
+
 	hooks: {
 		before: {
-			// "*": ["checkIsAuthenticated"],
-			hello: ["authenticate", "checkOwner"],
+			"athlete-only": ["authenticate"],
+
+			common: ["authenticate"],
+
+			logout: ["authenticate"],
+
+			delete: ["authenticate"],
 
 			register: [
 				function addTimestamp(ctx) {
@@ -23,29 +31,44 @@ module.exports = {
 				}
 			]
 		},
-		after: {
-			get: [
-				(ctx, res) => {
-					delete res.password;
-					return res;
-				}
-			]
-		}
 	},
 
 	actions: {
-		aaaa: {
-			rest: "/aaaa",
+		"athlete-only": {
+			rest: "GET /athlete-only",
+			roles: ["athlete"],
 			async handler() {
-				return "This is restricted";
+				return "This route is only for athletes.";
 			}
 		},
 
-		"delete-user": {
-			role: "super-admin",
-			rest:"/delete-user",
+		common: {
+			rest: "GET /common",
+			async handler() {
+				return "Common route allowed for all user roles.";
+			}
+		},
+
+		delete: {
+			roles: ["super-admin"],
+			rest:"POST /delete",
 			async handler() {
 				return "User deleted successfully.";
+			}
+		},
+
+		logout: {
+			rest: "POST /logout",
+
+			async handler(ctx) {
+				const authHeader = ctx.meta.authorization;
+				const token = authHeader && authHeader.split(" ")[1];
+				let payload = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+				const user = await this.adapter.findById(payload.id);
+
+				await this.adapter.updateById(user._id, { $set: { loginInfo: [] } });
+
+				return "User logged out successfully";
 			}
 		},
 
@@ -97,7 +120,8 @@ module.exports = {
 					email: ctx.params.email,
 					password: ctx.params.password,
 					role: ctx.params.role,
-					createdAt: ctx.params.createdAt
+					createdAt: ctx.params.createdAt,
+					loginInfo:[]
 				});
 
 				return {status:"success", message:"New user registered successfully.", data:newUser};
@@ -118,7 +142,7 @@ module.exports = {
 
 			//expire all tokens for same device and ip
 			user.loginInfo.forEach((login) => {
-				if(login.ip_address === ip && login.device === ctx.meta.userAgent)
+				if (login.ip_address === ip && login.device === ctx.meta.userAgent)
 					login.token_deleted = true;
 			});
 
@@ -132,7 +156,8 @@ module.exports = {
 				token_id : token_id,
 				token_secret : token_secret ,
 				ip_address : ip ,
-				device : ctx.meta.userAgent
+				device : ctx.meta.userAgent,
+				token_deleted: false
 			};
 
 			//update user
@@ -142,53 +167,5 @@ module.exports = {
 
 			return await jwt.sign(token_user, process.env.ACCESS_TOKEN_SECRET);
 		},
-
-		async authenticateToken(ctx) {
-			const authHeader = ctx.meta.authorization;
-
-			const bearer = authHeader && authHeader.split(" ")[0];
-			// if (bearer !== "Bearer")
-			// 	return res.sendStatus(401);
-
-			const token = authHeader && authHeader.split(" ")[1];
-			// if (token == null)
-			// 	return res.sendStatus(401);
-
-			// Blacklist.findOne({ where: {token: token } })
-			// 	.then((found) => {
-			//
-			// 		if (found){
-			// 			details={
-			// 				"Status":"Failure",
-			// 				"Details":"Token blacklisted. Cannot use this token."
-			// 			};
-			//
-			// 			return res.status(401).json(details);
-			// 		}
-			// 		else {
-
-
-			jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async (err, payload) => {
-				if (err)
-					return "error";
-				if(payload){
-					const login = await User_Login.findOne({where:{ user_id : payload.id, token_id: payload.token_id}});
-
-					if(login.token_deleted === true) {
-						// const blacklist_token = Blacklist.create({
-						// 	token:token
-						// });
-						// return res.sendStatus(401);
-						return "token deleted";
-					}
-				}
-				// req.user = payload;
-				// next();
-				return true;
-			});
-			// }
-			// });
-
-		}
 	}
 };
