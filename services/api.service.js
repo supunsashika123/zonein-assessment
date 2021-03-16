@@ -38,10 +38,10 @@ module.exports = {
 				mergeParams: true,
 
 				// Enable authentication. Implement the logic into `authenticate` method. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Authentication
-				authentication: true,
+				authentication: false,
 
 				// Enable authorization. Implement the logic into `authorize` method. More info: https://moleculer.services/docs/0.14/moleculer-web.html#Authorization
-				authorization: true,
+				authorization: false,
 
 				// The auto-alias feature allows you to declare your route alias directly in your services.
 				// The gateway will dynamically build the full routes from service schema.
@@ -51,6 +51,13 @@ module.exports = {
 
 				},
 
+				onBeforeCall(ctx, route, req, res) {
+					// Set request headers to context meta
+					ctx.meta.userAgent = req.headers["user-agent"];
+					ctx.meta.xForwardedFor = req.headers["x-forwarded-for"];
+					ctx.meta.remoteAddress = req.connection.remoteAddress;
+					ctx.meta.authorization = req.headers["authorization"];
+				},
 				/**
 				 * Before call hook. You can check the request.
 				 * @param {Context} ctx
