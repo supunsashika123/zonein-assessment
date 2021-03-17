@@ -2,6 +2,12 @@ const jwt = require("jsonwebtoken");
 
 module.exports = {
 	methods: {
+		/**
+		 * Authenticates the request by checking token validity.
+		 *
+		 * @param ctx
+		 * @returns {Promise<void>}
+		 */
 		authenticate: async function (ctx) {
 			const authHeader = ctx.meta.authorization;
 
@@ -18,7 +24,7 @@ module.exports = {
 				const user = await this.adapter.findById(payload.id);
 
 				if(!user){
-					throw new Error("No user found");
+					throw new Error("User not found");
 				}
 
 				let isBlackListedToken = true;
@@ -42,6 +48,13 @@ module.exports = {
 			}
 		},
 
+		/**
+		 * Checks whether the action is allowed for respective user role.
+		 *
+		 * @param allowedRoles
+		 * @param userRole
+		 * @returns {boolean|*}
+		 */
 		checkUserRoles: function (allowedRoles, userRole) {
 			if(!allowedRoles){
 				return true;

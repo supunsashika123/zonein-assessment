@@ -1,4 +1,5 @@
 "use strict";
+
 const { MoleculerClientError } = require("moleculer").Errors;
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
@@ -45,7 +46,7 @@ module.exports = {
 		common: {
 			rest: "GET /common",
 			async handler() {
-				return "Common route allowed for all user roles.";
+				return "Common route is allowed for all user roles.";
 			}
 		},
 
@@ -130,6 +131,13 @@ module.exports = {
 	},
 
 	methods: {
+		/**
+		 * Creates a new token for user. Blacklists all previous tokens for same device.
+		 *
+		 * @param ctx
+		 * @param user
+		 * @returns {Promise<*>}
+		 */
 		async createToken(ctx, user) {
 			const token_id = await customId({
 				user_id : user._id,

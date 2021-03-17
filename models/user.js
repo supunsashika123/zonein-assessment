@@ -8,7 +8,7 @@ const UserSchema = new Schema({
 		type: String,
 		trim: true,
 		required: true,
-		unique:true
+		unique: true
 	},
 	password: {
 		type: String,
@@ -16,7 +16,7 @@ const UserSchema = new Schema({
 		required: true,
 	},
 	role: {
-		enum:["admin","super-admin"],
+		enum: ["admin","super-admin","athlete","parent","restaurant"],
 		type: String,
 		required: true,
 	},
